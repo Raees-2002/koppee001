@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Raees-2002/koppee001.git'
@@ -17,14 +18,14 @@ pipeline {
                 '''
             }
         }
+    }
 
-        stage('Deploy') {
-            steps {
-                sh '''
-                echo "Deploying to EC2..."
-                pm2 restart app || pm2 start app.js
-                '''
-            }
+    post {
+        success {
+            echo '✅ Deployment successful'
+        }
+        failure {
+            echo '❌ Deployment failed'
         }
     }
 }
