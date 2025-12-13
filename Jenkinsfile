@@ -9,10 +9,12 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Deploy HTML') {
             steps {
-                sh 'echo "Building application..."'
-                sh 'npm install'   // or mvn package / gradle build
+                sh '''
+                echo "Deploying HTML files..."
+                cp -r * /var/www/html/
+                '''
             }
         }
 
