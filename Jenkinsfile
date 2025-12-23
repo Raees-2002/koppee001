@@ -1,17 +1,18 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-    stage('Clone Repo') {
-      steps {
-        git 'https://github.com/Raees-2002/koppee001.git'
-      }
-    }
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t koppee-site:latest .'
+            }
+        }
 
-    stage('Build Docker Image') {
-      steps {
-        sh 'docker build -t jenkins-k8s-demo:latest .'
-      }
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl apply -f service.yaml'
+            }
+        }
     }
-  }
 }
