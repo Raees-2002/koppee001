@@ -1,31 +1,34 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
+  stages {
+    stage('Clone Repo') {
+      steps {
+        git 'pipeline {
+  agent any
 
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/Raees-2002/koppee001.git'
-            }
-        }
-
-        stage('Deploy HTML') {
-            steps {
-                sh '''
-                echo "Deploying HTML files..."
-                cp -r * /var/www/html/
-                '''
-            }
-        }
+  stages {
+    stage('Clone Repo') {
+      steps {
+        git 'https://github.com/Raees-2002/koppee001.git
+      }
     }
 
-    post {
-        success {
-            echo '✅ Deployment successful'
-        }
-        failure {
-            echo '❌ Deployment failed'
-        }
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t jenkins-k8s-demo:latest .'
+      }
     }
+  }
+}
+'
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t jenkins-k8s-demo:latest .'
+      }
+    }
+  }
 }
