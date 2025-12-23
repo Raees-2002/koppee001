@@ -2,17 +2,32 @@ pipeline {
     agent any
 
     stages {
-        stage('Build Docker Image') {
+
+        stage('Checkout Code') {
             steps {
-                sh 'docker build -t koppee-site:latest .'
+                git branch: 'main',
+                    url: 'https://github.com/Raees-2002/koppee001.git'
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy HTML Website') {
             steps {
-                sh 'kubectl apply -f deployment.yaml'
-                sh 'kubectl apply -f service.yaml'
+                sh '''
+                echo "Deploying Koppee HTML website..."
+                mkdir -p /var/jenkins_home/deploy
+                rm -rf /var/jenkins_home/deploy/*
+                cp -r * /var/jenkins_home/deploy/
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Koppee website deployed successfully'
+        }
+        failure {
+            echo '❌ Deployment failed'
         }
     }
 }
