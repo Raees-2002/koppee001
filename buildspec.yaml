@@ -3,8 +3,8 @@ version: 0.2
 phases:
   build:
     commands:
-      - echo "Deploying static site to S3"
-      - aws s3 sync . s3://coffee-website-<your-bucket-name> \
+      - |
+        aws s3 sync . s3://koppe-0101\
         --exclude ".git/*" \
         --exclude "buildspec.yml" \
         --exclude "README.md"
