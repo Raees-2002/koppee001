@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: html-app
-        image: html-k8s-demo:latest
+        image: koppee-site:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 80
