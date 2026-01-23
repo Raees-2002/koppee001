@@ -45,6 +45,7 @@ jobs:
         aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
         docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
 
+
           
           
           sudo docker pull ${{ secrets.ECR_REPO }}:latest
