@@ -27,12 +27,12 @@ jobs:
 
 
       - name: Build Docker image
-        run: docker build -t coffee-app:latest .
+        run: docker build -t coffee001:latest .
 
       - name: Tag & push image to ECR
         run: |
-          docker tag coffee-app:latest ${{ secrets.ECR_REPO }}:latest
-          docker push ${{ secrets.ECR_REPO }}:latest
+          docker tag coffee001:latest 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
+          docker push 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
 
       - name: Deploy to GREEN EC2
         uses: appleboy/ssh-action@v1
