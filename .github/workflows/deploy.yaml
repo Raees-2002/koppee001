@@ -20,10 +20,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
+           - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
+          aws ecr get-login-password --region eu-north-1 | \
+          docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
+
 
       - name: Build Docker image
         run: docker build -t coffee-app:latest .
