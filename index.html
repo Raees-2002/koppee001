@@ -287,7 +287,15 @@
         <div class="credit">created by <span>mr. web designer</span> | all rights reserved</div>
     </section>
 
+    <h2 style="text-align:center">Version: <span id="version"></span></h2>
 
+    <script>
+      fetch("/version")
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById("version").innerText = data;
+        });
+    </script>
 
 
 
