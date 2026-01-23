@@ -18,20 +18,19 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: eu-north-1
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR (runner)
         run: |
           aws ecr get-login-password --region eu-north-1 | \
           docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
 
-
       - name: Build Docker image
-        run: docker build -t coffee001:latest .
+        run: docker build -t coffee-app:latest .
 
-      - name: Tag & push image to ECR
+      - name: Tag & push image
         run: |
-          docker tag coffee001:latest 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
+          docker tag coffee-app:latest 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
           docker push 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
 
       - name: Deploy to GREEN EC2
@@ -41,15 +40,15 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-            docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
+            aws ecr get-login-password --region eu-north-1 | \
+            docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
 
-            docker pull ${{ secrets.ECR_REPO }}:latest
+            docker pull 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
             docker stop app || true
             docker rm app || true
             docker run -d -p 3000:3000 --name app \
               -e APP_VERSION=latest \
-              ${{ secrets.ECR_REPO }}:latest
+              021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
 
       - name: Health check on GREEN
         uses: appleboy/ssh-action@v1
@@ -58,6 +57,5 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Waiting for app..."
             sleep 10
             curl -f http://localhost:3000/health
