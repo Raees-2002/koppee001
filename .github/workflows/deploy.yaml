@@ -1,9 +1,8 @@
-name: Blue-Green Deployment
+name: Automated Blue-Green Deployment
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -13,27 +12,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - name: Login to Amazon ECR (runner)
+      - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 | \
           docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
 
-      - name: Build Docker image
-        run: docker build -t coffee-app:latest .
-
-      - name: Tag & push image
+      - name: Build & push image
         run: |
-          docker tag coffee-app:latest 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
-          docker push 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
+          docker build -t coffee-app:${{ github.sha }} .
+          docker tag coffee-app:${{ github.sha }} 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:${{ github.sha }}
+          docker push 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:${{ github.sha }}
 
-      - name: Deploy to GREEN EC2
+      - name: Detect active target group
+        id: active
+        run: |
+          ACTIVE=$(aws elbv2 describe-listeners \
+            --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
+            --query "Listeners[0].DefaultActions[0].TargetGroupArn" \
+            --output text)
+
+          if [ "$ACTIVE" = "${{ secrets.BLUE_TG_ARN }}" ]; then
+            echo "idle=green" >> $GITHUB_OUTPUT
+            echo "deploy_tg=${{ secrets.GREEN_TG_ARN }}" >> $GITHUB_OUTPUT
+          else
+            echo "idle=blue" >> $GITHUB_OUTPUT
+            echo "deploy_tg=${{ secrets.BLUE_TG_ARN }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to idle EC2
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.GREEN_EC2_IP }}
@@ -43,19 +56,32 @@ jobs:
             aws ecr get-login-password --region eu-north-1 | \
             docker login --username AWS --password-stdin 021859068728.dkr.ecr.eu-north-1.amazonaws.com
 
-            docker pull 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
+            docker pull 021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:${{ github.sha }}
             docker stop app || true
             docker rm app || true
-            docker run -d -p 3000:3000 --name app \
-              -e APP_VERSION=latest \
-              021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:latest
+            docker run -d --restart unless-stopped -p 3000:3000 --name app \
+              -e APP_VERSION=${{ github.sha }} \
+              021859068728.dkr.ecr.eu-north-1.amazonaws.com/coffee001:${{ github.sha }}
 
-      - name: Health check on GREEN
+      - name: Health check idle env
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.GREEN_EC2_IP }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sleep 10
+            sleep 15
             curl -f http://localhost:3000/health
+
+      - name: Switch ALB to new version
+        run: |
+          aws elbv2 modify-listener \
+            --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
+            --default-actions Type=forward,TargetGroupArn=${{ steps.active.outputs.deploy_tg }}
+
+      - name: Auto rollback on failure
+        if: failure()
+        run: |
+          aws elbv2 modify-listener \
+            --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
+            --default-actions Type=forward,TargetGroupArn=${{ secrets.BLUE_TG_ARN }}
